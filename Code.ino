@@ -3,9 +3,9 @@
 //定义五种运动状态
 #define STOP      0
 #define FORWARD   1
-#define BACK  2
-#define LEFT  3
-#define RIGHT 4
+#define BACK      2
+#define LEFT      3
+#define RIGHT     4
 
 const int leftMotor1 = 10;
 const int leftMotor2 = 11;
@@ -27,8 +27,9 @@ const int S2 = 45;
 const int S3 = 47;
 const int out = 33;
 
-SoftwareSerial BT(19, 18); // 10为TX引脚，11为RX引脚
+SoftwareSerial BT(19, 18); // 19为TX引脚，18为RX引脚
 char val; 
+
 // 初始化颜色值
 char colour; // 用于存储颜色代码的变量
 int red = 0; // 红色强度值
@@ -58,6 +59,7 @@ void loop() {
     int Left = distanceLeft();
     int Right = distanceRight();
     
+    //利用蓝牙串口发送超声波传感器数据
     BT.println("Distance front: " + String(Front) + " cm, Distance left: " + String(Left) + " cm, Distance right: " + String(Right) + " cm");
 
     if (Serial.available()) {
@@ -217,7 +219,6 @@ void motorRun(int direction, int speed) {
       analogWrite(rightMotor2, pwmValue);
       break;
     case LEFT:
-      
       analogWrite(leftMotor1, pwmValue);
       digitalWrite(leftMotor2, LOW);
       analogWrite(rightMotor1, pwmValue);
