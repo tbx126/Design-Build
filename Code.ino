@@ -32,7 +32,7 @@ SoftwareSerial BT(19, 18); // 19为TX引脚，18为RX引脚
 char val; 
 
 // 初始化颜色值
-char colour; // 用于存储颜色代码的变量
+String colour; // 用于存储颜色代码的变量
 int red = 0; // 红色强度值
 int green = 0; // 绿色强度值
 int blue = 0; // 蓝色强度值
@@ -53,7 +53,7 @@ void setup() {
 
 void loop() {
     // 在主循环中，首先调用颜色LED检测函数
-    colorLED();
+    String colour = colorLED();
     
     // 然后调用超声波传感器测距函数，测量前、左、右三个方向的距离
     int Front = distanceFront();
@@ -67,6 +67,9 @@ void loop() {
 
     // Store the current time in the JSON document
     doc["timeElapsed"] = currentTime;
+
+    // Add the detected colour to the JSON document
+    doc["Colour Detected"] = colour;
 
     // If less than 10 seconds have passed since the program started, send statusCode 200
     if (currentTime < 10000) {
@@ -85,7 +88,6 @@ void loop() {
 
     // Now you can print or send this output string
     BT.println(output);
-
     if (Serial.available()) {
         val = Serial.read();
         BT.print(val);
@@ -137,10 +139,11 @@ int distanceFront() {
 
   // 计算并返回距离
   distanceFront = durationFront / 58;
+  /*
   Serial.print("Distance front: ");
   Serial.print(distanceFront);
   Serial.print("cm");
-  Serial.println();
+  Serial.println();*/
   return distanceFront;
 }
 
@@ -162,10 +165,11 @@ int distanceLeft() {
 
   // 计算并返回距离
   distanceLeft = durationLeft / 58;
+  /*
   Serial.print("Distance Left: ");
   Serial.print(distanceLeft);
   Serial.print("cm");
-  Serial.println();
+  Serial.println();*/
   return distanceLeft;
 }
 
@@ -187,15 +191,16 @@ int distanceRight() {
 
   // 计算并返回距离
   distanceRight = durationRight / 58;
+  /*
   Serial.print("Distance Right: ");
   Serial.print(distanceRight);
   Serial.print("cm");
-  Serial.println();
+  Serial.println();*/
   return distanceRight;
 }
 
 // 颜色LED检测函数
-void colorLED() {
+String colorLED() {
   // 检测红色
   digitalWrite(S2, LOW);
   digitalWrite(S3, LOW);
@@ -209,27 +214,30 @@ void colorLED() {
   digitalWrite(S2, HIGH);
   green = pulseIn(out, digitalRead(out) == HIGH ? LOW : HIGH);
 
+  Serial.println(red);
+  Serial.println(green);
+  Serial.println(blue);
+
   // 根据RGB值判断颜色，并打印
-  if (blue < red && blue < green) { 
-    Serial.println('B');
-    colour = 'B';
-    motorRun(0, 0); delay(3000);        //静止3秒
-    motorRun(3, 60); delay(60);   //右转
-    motorRun(2, 50); delay(120);      //后退
-    motorRun(3, 60); delay(60);   //右转
-  } else if (red < 5 && green < 5 && blue < 5) { 
-    Serial.println('W');
-    colour = 'W';
-  } else if (green < red && green < blue) { 
-    colour = 'G';
-    Serial.println('G');
-  } else if (red < blue && red < green && red < 20) {
-    colour = 'R';
-    Serial.println('R');
-  } else if (red < green && green < blue && green < 20) { 
-    colour = 'Y';
-    Serial.println('Y');
+  if (red > green && red > blue) {
+    Serial.println("Red");
+    colour = "Red";
+  } else if (green > red && green > blue) {
+    Serial.println("Green");
+    colour = "Green";
+  } else if (blue > red && blue > green) {
+    Serial.println("Blue");
+    colour = "Blue";
+    // ... 省略部分代码 ...
+  } else if (red < 5 && green < 5 && blue < 5) {
+    Serial.println("White");
+    colour = "White";
+  } else {
+    Serial.println("Unknown");
+    colour = "Unknown";
   }
+
+  return colour;
 }
 
 void motorRun(int direction, int speed) {
