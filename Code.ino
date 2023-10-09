@@ -1,4 +1,5 @@
 #include <SoftwareSerial.h>
+#include <ArduinoJson.h>
 
 //定义五种运动状态
 #define STOP      0
@@ -59,8 +60,31 @@ void loop() {
     int Left = distanceLeft();
     int Right = distanceRight();
     
-    //利用蓝牙串口发送超声波传感器数据
-    BT.println("Distance front: " + String(Front) + " cm, Distance left: " + String(Left) + " cm, Distance right: " + String(Right) + " cm");
+    StaticJsonDocument<200> doc;
+
+    // Get the current time
+    unsigned long currentTime = millis();
+
+    // Store the current time in the JSON document
+    doc["timeElapsed"] = currentTime;
+
+    // If less than 10 seconds have passed since the program started, send statusCode 200
+    if (currentTime < 10000) {
+        doc["statusCode"] = 200;
+        doc["Distance front"] = Front;
+        doc["Distance left"] = Left;
+        doc["Distance right"] = Right;
+    } else { // After 10 seconds, send statusCode 404
+        doc["statusCode"] = 404;
+        doc["message"] = "The car has exited the maze.";
+    }
+
+    // Serialize JSON document
+    String output;
+    serializeJson(doc, output);
+
+    // Now you can print or send this output string
+    BT.println(output);
 
     if (Serial.available()) {
         val = Serial.read();
