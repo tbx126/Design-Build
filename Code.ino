@@ -8,10 +8,10 @@
 #define LEFT      3
 #define RIGHT     4
 
-const int leftMotor1 = 10;
-const int leftMotor2 = 11;
-const int rightMotor1 = 12;
-const int rightMotor2 = 13;
+const int leftMotor1 = 4;
+const int leftMotor2 = 5;
+const int rightMotor1 = 6;
+const int rightMotor2 = 7;
 
 // 定义超声波传感器的引脚
 const int trigFront = 41; // 前方超声波传感器的触发引脚
@@ -26,7 +26,11 @@ const int S0 = 46;
 const int S1 = 44;
 const int S2 = 45;
 const int S3 = 47;
-const int out = 33;
+
+int out=2;
+int flag=0;
+byte counter=0;
+byte Red=0,Green=0,Blue=0;
 
 SoftwareSerial BT(19, 18); // 19为TX引脚，18为RX引脚
 char val; 
@@ -40,6 +44,10 @@ int blue = 0; // 蓝色强度值
 void setup() {
   // 设置串口通信的波特率为9600
   Serial.begin(9600);
+  pinMode(S0,OUTPUT);
+  pinMode(S1,OUTPUT);
+  pinMode(S2,OUTPUT);
+  pinMode(S3,OUTPUT);
 
   BT.begin(9600);  //设置HC-06兼容模块波特率
   
@@ -53,13 +61,14 @@ void setup() {
 
 void loop() {
     // 在主循环中，首先调用颜色LED检测函数
-    String colour = colorLED();
+
+    TCS();
     
     // 然后调用超声波传感器测距函数，测量前、左、右三个方向的距离
     int Front = distanceFront();
     int Left = distanceLeft();
     int Right = distanceRight();
-    
+    /*
     StaticJsonDocument<200> doc;
 
     // Get the current time
@@ -79,7 +88,6 @@ void loop() {
         doc["Distance right"] = Right;
     } else { // After 10 seconds, send statusCode 404
         doc["statusCode"] = 404;
-        doc["message"] = "The car has exited the maze.";
     }
 
     // Serialize JSON document
@@ -92,7 +100,7 @@ void loop() {
         val = Serial.read();
         BT.print(val);
     }
-    
+    */
     if(Front <= 10) {
         if(Left <= 15 && Right <= 15) {
             motorRun(1,30);
@@ -199,47 +207,6 @@ int distanceRight() {
   return distanceRight;
 }
 
-// 颜色LED检测函数
-String colorLED() {
-  // 检测红色
-  digitalWrite(S2, LOW);
-  digitalWrite(S3, LOW);
-  red = pulseIn(out, digitalRead(out) == HIGH ? LOW : HIGH); 
-
-  // 检测蓝色
-  digitalWrite(S3, HIGH);
-  blue = pulseIn(out, digitalRead(out) == HIGH ? LOW : HIGH);
-
-  // 检测绿色
-  digitalWrite(S2, HIGH);
-  green = pulseIn(out, digitalRead(out) == HIGH ? LOW : HIGH);
-
-  Serial.println(red);
-  Serial.println(green);
-  Serial.println(blue);
-
-  // 根据RGB值判断颜色，并打印
-  if (red > green && red > blue) {
-    Serial.println("Red");
-    colour = "Red";
-  } else if (green > red && green > blue) {
-    Serial.println("Green");
-    colour = "Green";
-  } else if (blue > red && blue > green) {
-    Serial.println("Blue");
-    colour = "Blue";
-    // ... 省略部分代码 ...
-  } else if (red < 5 && green < 5 && blue < 5) {
-    Serial.println("White");
-    colour = "White";
-  } else {
-    Serial.println("Unknown");
-    colour = "Unknown";
-  }
-
-  return colour;
-}
-
 void motorRun(int direction, int speed) {
   int pwmValue = map(speed, 0, 100, 0, 255); // 将速度映射为合适的PWM值
 
@@ -274,5 +241,87 @@ void motorRun(int direction, int speed) {
       analogWrite(leftMotor2, 0);
       digitalWrite(rightMotor1, LOW);
       analogWrite(rightMotor2, 0);
+  }
+}
+
+void TCS() {
+  flag = 0;
+  digitalWrite(S1,HIGH);
+  digitalWrite(S0,HIGH);
+  digitalWrite(S2,LOW);
+  digitalWrite(S3,LOW);
+  attachInterrupt(0, ISR_INTO, LOW);
+  timer0_init();
+  determineColor(Red, Green, Blue);
+}
+
+void ISR_INTO() {
+  counter++;
+}
+
+void timer0_init(void) {
+  TCCR2A = 0x00;
+  TCCR2B = 0x07;   // the clock frequency source 1024 points
+  TCNT2 = 100;     // 10 ms overflow again
+  TIMSK2 = 0x01;   // allow interrupt
+}
+
+
+ISR(TIMER2_OVF_vect) { // the timer 2, 10ms interrupt overflow again. Internal overflow interrupt executive function
+  TCNT2 = 100;
+  flag++;
+  
+  if(flag==1) {
+    Red=counter;
+    //Serial.print("red=");
+    //Serial.println(Red);
+    digitalWrite(S2,HIGH);
+    digitalWrite(S3,HIGH);
+  } else if(flag==2){
+    Green=counter;
+    //Serial.print("green=");
+    //Serial.println(Green);
+    digitalWrite(S2,LOW);
+    digitalWrite(S3,HIGH);
+  } else if(flag==3){
+    Blue=counter;
+    //Serial.print("blue=");
+    //Serial.println(Blue);
+    digitalWrite(S2,LOW);
+    digitalWrite(S3,LOW);
+  } else if(flag==4){
+    flag=0;
+  }
+  counter=0;
+}
+
+void determineColor(int red, int green, int blue) {
+  String colour;
+
+  float whiteCenter[] = {105.32727273, 126.58181818, 123.63636364};
+  float redCenter[] = {131.75, 61.5, 76.07142857};
+  float blueCenter[] = {115.8, 101.02857143, 168.37142857};
+  float greenCenter[] = {76.07142857, 131.75, 61.5}; // Replace with your actual green centroid
+
+  float distanceToWhite = sqrt(pow(red - whiteCenter[0], 2) + pow(green - whiteCenter[1], 2) + pow(blue - whiteCenter[2], 2));
+  float distanceToRed = sqrt(pow(red - redCenter[0], 2) + pow(green - redCenter[1], 2) + pow(blue - redCenter[2], 2));
+  float distanceToBlue = sqrt(pow(red - blueCenter[0], 2) + pow(green - blueCenter[1], 2) + pow(blue - blueCenter[2], 2));
+  float distanceToGreen = sqrt(pow(red - greenCenter[0], 2) + pow(green - greenCenter[1], 2) + pow(blue - greenCenter[2], 2)); // Green distance
+
+  if (distanceToWhite < distanceToRed && distanceToWhite < distanceToBlue && distanceToWhite < distanceToGreen) {
+    colour = "White";
+    Serial.println("White");
+  } else if (distanceToRed < distanceToWhite && distanceToRed < distanceToBlue && distanceToRed < distanceToGreen) {
+    colour = "Red";
+    Serial.println("Red");
+  } else if (distanceToBlue < distanceToWhite && distanceToBlue < distanceToRed && distanceToBlue < distanceToGreen) {
+    colour = "Blue";
+    Serial.println("Blue");
+  } else if (distanceToGreen < distanceToWhite && distanceToGreen < distanceToRed && distanceToGreen < distanceToBlue) { // Green condition
+    colour = "Green";
+    Serial.println("Green");
+  } else {
+    colour = "Unknown";
+    Serial.println("Unknown");
   }
 }
