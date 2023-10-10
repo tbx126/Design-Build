@@ -32,14 +32,14 @@ int flag=0;
 byte counter=0;
 byte Red=0,Green=0,Blue=0;
 
-SoftwareSerial BT(19, 18); // 19为TX引脚，18为RX引脚
-char val; 
-
 // 初始化颜色值
 String colour; // 用于存储颜色代码的变量
 int red = 0; // 红色强度值
 int green = 0; // 绿色强度值
 int blue = 0; // 蓝色强度值
+
+SoftwareSerial BT(19, 18); // 19为TX引脚，18为RX引脚
+char val; 
 
 void setup() {
   // 设置串口通信的波特率为9600
@@ -68,7 +68,7 @@ void loop() {
     int Front = distanceFront();
     int Left = distanceLeft();
     int Right = distanceRight();
-    /*
+
     StaticJsonDocument<200> doc;
 
     // Get the current time
@@ -87,7 +87,7 @@ void loop() {
         doc["Distance left"] = Left;
         doc["Distance right"] = Right;
     } else { // After 10 seconds, send statusCode 404
-        doc["statusCode"] = 404;
+        doc["statusCode"] = 1;
     }
 
     // Serialize JSON document
@@ -100,7 +100,7 @@ void loop() {
         val = Serial.read();
         BT.print(val);
     }
-    */
+
     if(Front <= 10) {
         if(Left <= 15 && Right <= 15) {
             motorRun(1,30);

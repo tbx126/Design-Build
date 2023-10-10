@@ -24,7 +24,7 @@ def process_image(model, image_path, count):
 ser = serial.Serial('COM6')  # replace 'COM6' with your actual serial port name
 image_url = "http://192.168.8.1:8083/?action=snapshot"
 target_dir = 'C:\\Users\\tbx12\\Desktop\\Code\\target'
-predict_dir = 'C:\\Users\\tbx12\\Desktop\\Cdoe\\predict'
+predict_dir = 'C:\\Users\\tbx12\\Desktop\\Code\\predict'
 model = YOLO('C:\\Users\\tbx12\\Desktop\\Code\\train45\\weights\\best.pt')
 
 counter = 1

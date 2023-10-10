@@ -79,7 +79,7 @@ class ImageGUI(tk.Tk):
 
 
 
-sourceLeft = "C:\\Users\\tbx12\\Desktop\\target"  # example路径
-sourceRight = "C:\\Users\\tbx12\\Desktop\\predict"  # answer路径
+sourceLeft = "C:\\Users\\tbx12\\Desktop\\Code\\target"  # example路径
+sourceRight = "C:\\Users\\tbx12\\Desktop\\Code\\predict"  # answer路径
 app = ImageGUI(sourceLeft, sourceRight)
 app.mainloop()
