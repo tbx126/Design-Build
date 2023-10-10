@@ -83,12 +83,16 @@ void loop() {
     // If less than 10 seconds have passed since the program started, send statusCode 200
     if (currentTime < 10000) {
         doc["statusCode"] = 200;
-        doc["Distance front"] = Front;
-        doc["Distance left"] = Left;
-        doc["Distance right"] = Right;
     } else { // After 10 seconds, send statusCode 404
         doc["statusCode"] = 1;
     }
+
+    doc["Distance front"] = Front;
+    doc["Distance left"] = Left;
+    doc["Distance right"] = Right;
+    doc["Red"] = Red;
+    doc["Green"] = Green;
+    doc["Blue"] = Blue;
 
     // Serialize JSON document
     String output;
@@ -101,15 +105,14 @@ void loop() {
         BT.print(val);
     }
 
-    if(Front <= 10) {
-        if(Left <= 15 && Right <= 15) {
+    if(Front <= 15) {
+        if(Left <= 12 && Right <= 12) {
             motorRun(1,30);
-            /* 
+            motorRun(2, 50); delay(200);
             motorRun(0, 0); delay(3000);        //静止3秒
-            motorRun(3, 40); delay(100);   //右转
-            motorRun(2, 50); delay(1000);      //后退
-            motorRun(3, 40); delay(100);   //右转
-            */
+            motorRun(3, 40); delay(500);   //右转
+            motorRun(2, 50); delay(500);      //后退
+            motorRun(3, 40); delay(500);   //右转
         }
         else {
             if(Left >= Right + 5) {
@@ -296,7 +299,6 @@ ISR(TIMER2_OVF_vect) { // the timer 2, 10ms interrupt overflow again. Internal o
 }
 
 void determineColor(int red, int green, int blue) {
-  String colour;
 
   float whiteCenter[] = {105.32727273, 126.58181818, 123.63636364};
   float redCenter[] = {131.75, 61.5, 76.07142857};

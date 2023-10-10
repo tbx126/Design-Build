@@ -20,12 +20,12 @@ def download_image(url, filename):
 ser = serial.Serial('COM6')  # replace 'COM6' with your actual serial port name
 # 检查保存整数的文件是否存在
 print("1")
-if not os.path.exists("C:\\Users\\tbx12\\Desktop\\number.txt"):
-    with open("C:\\Users\\tbx12\\Desktop\\number.txt", "w") as file:
+if not os.path.exists("C:\\Users\\tbx12\\Desktop\\Code\\number.txt"):
+    with open("C:\\Users\\tbx12\\Desktop\\Code\\number.txt", "w") as file:
         file.write("0")
 print("2")
 # 读取文件中的整数值
-with open("C:\\Users\\tbx12\\Desktop\\number.txt", "r") as file:
+with open("C:\\Users\\tbx12\\Desktop\\Code\\number.txt", "r") as file:
     number = int(file.read())
 print("3")
 while True:  # replace with your own condition for when to stop
@@ -64,7 +64,7 @@ while True:  # replace with your own condition for when to stop
 
         # 下载图像
         download_image(image_url, image_path)
-        print("9")
+        print("9"
     # 运行123.py
         # Load a pretrained YOLOv8n model
         model = YOLO('C:\\Users\\tbx12\\Desktop\\Code\\train45\\weights\\best.pt')
