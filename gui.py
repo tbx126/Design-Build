@@ -79,7 +79,10 @@ class ImageGUI(tk.Tk):
 
 
 
-sourceLeft = "C:\\Users\\tbx12\\Desktop\\Code\\target"  # example路径
-sourceRight = "C:\\Users\\tbx12\\Desktop\\Code\\predict"  # answer路径
-app = ImageGUI(sourceLeft, sourceRight)
-app.mainloop()
+# Your existing code
+
+def run_gui():
+    sourceLeft = "C:\\Users\\tbx12\\Desktop\\Code\\target"  # example路径
+    sourceRight = "C:\\Users\\tbx12\\Desktop\\Code\\predict"  # answer路径
+    app = ImageGUI(sourceLeft, sourceRight)
+    app.mainloop()

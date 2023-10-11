@@ -6,6 +6,7 @@ import os
 import serial
 import mysql.connector
 import requests
+import gui
 from PIL import Image
 from ultralytics import YOLO
 
@@ -56,7 +57,7 @@ while True:  # replace with your own condition for when to stop
     image_path = os.path.join(target_dir, f'target_{number}.jpg')
         # 检查状态码，如果是404，说明小车已经退出迷宫，我们可以停止记录路径并显示图像
     print("7")
-    if sensor_data.get("statusCode", 0) == 1:
+    while sensor_data.get("statusCode", 0) == 1:
         print("8")
      # 运行getImage.py
         # 替换为你想要下载的图片的url
@@ -64,7 +65,7 @@ while True:  # replace with your own condition for when to stop
 
         # 下载图像
         download_image(image_url, image_path)
-        print("9"
+        print("9")
     # 运行123.py
         # Load a pretrained YOLOv8n model
         model = YOLO('C:\\Users\\tbx12\\Desktop\\Code\\train45\\weights\\best.pt')
@@ -82,7 +83,7 @@ while True:  # replace with your own condition for when to stop
 
         #读入数据库
         print("10")
-        data = (number, sensor_data.get("timeElapsed", 0), "1", predict_path)
+        data = (number, sensor_data.get("timeElapsed", 0)/1000, "1", predict_path)
         # 执行SQL语句
         cursor.execute(add_data, data)
 
@@ -92,6 +93,14 @@ while True:  # replace with your own condition for when to stop
         # 最后，关闭cursor和connection
         cursor.close()
         cnx.close()
+
+        # 更新"number.txt"中的数字
+        with open("C:\\Users\\tbx12\\Desktop\\Code\\number.txt", "w") as file:
+            file.write(str(number + 1))
+
+        # 运行"gui.py"
+        gui.run_gui()
+
         # exit
         sys.exit()
 

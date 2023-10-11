@@ -27,6 +27,10 @@ const int S1 = 44;
 const int S2 = 45;
 const int S3 = 47;
 
+int statusCode = 200;
+
+bool alreadyStopped = false; 
+
 int out=2;
 int flag=0;
 byte counter=0;
@@ -55,78 +59,87 @@ void setup() {
   pinMode(leftMotor2, OUTPUT);
   pinMode(rightMotor1, OUTPUT);
   pinMode(rightMotor2, OUTPUT);
-
-  Serial.begin(9600);
 }
 
 void loop() {
     // 在主循环中，首先调用颜色LED检测函数
+    //TCS();
 
-    TCS();
-    
     // 然后调用超声波传感器测距函数，测量前、左、右三个方向的距离
     int Front = distanceFront();
     int Left = distanceLeft();
     int Right = distanceRight();
 
     StaticJsonDocument<200> doc;
+    unsigned long currentTime = millis();  // 获取当前时间
 
-    // Get the current time
-    unsigned long currentTime = millis();
-
-    // Store the current time in the JSON document
+    // 把获取的数据存入JSON文档
     doc["timeElapsed"] = currentTime;
-
-    // Add the detected colour to the JSON document
     doc["Colour Detected"] = colour;
-
-    // If less than 10 seconds have passed since the program started, send statusCode 200
-    if (currentTime < 10000) {
-        doc["statusCode"] = 200;
-    } else { // After 10 seconds, send statusCode 404
-        doc["statusCode"] = 1;
-    }
-
+    doc["statusCode"] = statusCode;
     doc["Distance front"] = Front;
     doc["Distance left"] = Left;
     doc["Distance right"] = Right;
+
+    // 把颜色分量存入JSON文档
     doc["Red"] = Red;
     doc["Green"] = Green;
     doc["Blue"] = Blue;
 
-    // Serialize JSON document
+    // 将JSON文档序列化为字符串
     String output;
     serializeJson(doc, output);
 
-    // Now you can print or send this output string
+    // 发送JSON字符串
     BT.println(output);
+    Serial.println(output);
+
+    // 检测是否有串行数据可用
     if (Serial.available()) {
-        val = Serial.read();
-        BT.print(val);
+        val = Serial.read();  // 读取串行数据
+        BT.print(val);  // 发送串行数据
     }
 
-    if(Front <= 15) {
-        if(Left <= 12 && Right <= 12) {
-            motorRun(1,30);
-            motorRun(2, 50); delay(200);
-            motorRun(0, 0); delay(3000);        //静止3秒
-            motorRun(3, 40); delay(500);   //右转
-            motorRun(2, 50); delay(500);      //后退
-            motorRun(3, 40); delay(500);   //右转
+
+    // 检测前方距离
+    if(Front <= 26) {
+        if(Left <= 15 && Right <= 15 && !alreadyStopped) {
+            statusCode = 1;  // 更新状态码
+
+            // 创建新的JSON文档并存入状态码
+            StaticJsonDocument<200> doc;    
+            doc["statusCode"] = statusCode;
+
+            // 序列化并发送JSON文档
+            serializeJson(doc, output);
+            BT.println(output);
+            Serial.println(output);
+
+            motorRun(2, 50); delay(500);
+            motorRun(0, 0);  delay(6000);
+            motorRun(3, 70); delay(500);
+            motorRun(2, 70); delay(300);
+            motorRun(3, 70); delay(500);
+
+            alreadyStopped = true;
         }
-        else {
-            if(Left >= Right + 5) {
-                motorRun(3,30);
+        else if(!alreadyStopped){
+            // 根据左右距离控制运动
+            if(Left >= Right + 2) {
+                motorRun(3,80); // Turn left
                 delay(50);
             }
             else {
-                motorRun(4,30);
+                motorRun(4,80); // Turn right
                 delay(50);
             }
-        }      
+        }
     }
     else {
-        motorRun(1,30);
+        if(alreadyStopped) {
+            alreadyStopped = false;
+        }
+        motorRun(1, 50);
     }
 
     delay(10);
