@@ -31,6 +31,8 @@ int statusCode = 200;
 
 bool alreadyStopped = false; 
 
+StaticJsonDocument<200> doc;
+
 int out=2;
 int flag=0;
 byte counter=0;
@@ -62,6 +64,7 @@ void setup() {
 }
 
 void loop() {
+    String output;
     // 在主循环中，首先调用颜色LED检测函数
     //TCS();
 
@@ -70,7 +73,7 @@ void loop() {
     int Left = distanceLeft();
     int Right = distanceRight();
 
-    StaticJsonDocument<200> doc;
+    //StaticJsonDocument<200> doc;
     unsigned long currentTime = millis();  // 获取当前时间
 
     // 把获取的数据存入JSON文档
@@ -86,52 +89,50 @@ void loop() {
     doc["Green"] = Green;
     doc["Blue"] = Blue;
 
-    // 将JSON文档序列化为字符串
-    String output;
-    serializeJson(doc, output);
-
-    // 发送JSON字符串
-    BT.println(output);
-    Serial.println(output);
-
     // 检测是否有串行数据可用
     if (Serial.available()) {
         val = Serial.read();  // 读取串行数据
-        BT.print(val);  // 发送串行数据
+        BT.println(val);  // 发送串行数据
     }
 
 
     // 检测前方距离
-    if(Front <= 26) {
-        if(Left <= 15 && Right <= 15 && !alreadyStopped) {
+    if(Front <= 22) {
+        if(Left <= 16 && Right <= 16 && !alreadyStopped) {
             statusCode = 1;  // 更新状态码
 
             // 创建新的JSON文档并存入状态码
-            StaticJsonDocument<200> doc;    
+            //StaticJsonDocument<200> doc;    
             doc["statusCode"] = statusCode;
 
             // 序列化并发送JSON文档
             serializeJson(doc, output);
             BT.println(output);
-            Serial.println(output);
 
-            motorRun(2, 50); delay(500);
-            motorRun(0, 0);  delay(6000);
-            motorRun(3, 70); delay(500);
-            motorRun(2, 70); delay(300);
-            motorRun(3, 70); delay(500);
+            if (Serial.available()) {
+                val = Serial.read();  // 读取串行数据
+                BT.println(val);  // 发送串行数据
+            }
+            //Serial.println(output);
 
+            motorRun(2, 30); delay(300);
+            motorRun(0, 0);  delay(16000);
+            motorRun(4, 50); delay(300);
+            motorRun(2, 40); delay(300);
+            motorRun(4, 50); delay(500);
+
+            statusCode = 200;
             alreadyStopped = true;
         }
         else if(!alreadyStopped){
             // 根据左右距离控制运动
             if(Left >= Right + 2) {
-                motorRun(3,80); // Turn left
-                delay(50);
+                motorRun(3,50); // Turn left
+                delay(120);
             }
             else {
-                motorRun(4,80); // Turn right
-                delay(50);
+                motorRun(4,50); // Turn right
+                delay(120);
             }
         }
     }
@@ -139,8 +140,13 @@ void loop() {
         if(alreadyStopped) {
             alreadyStopped = false;
         }
-        motorRun(1, 50);
+        motorRun(1, 30);
     }
+
+    // 将JSON文档序列化为字符串
+    serializeJson(doc, output);
+    // 发送JSON字符串
+    BT.println(output);
 
     delay(10);
 }
