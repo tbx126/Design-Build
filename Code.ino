@@ -17,7 +17,7 @@ const int rightMotor1 = 6;
 const int rightMotor2 = 7;
 
 // Ultrasonic sensor pins
-const int trigFront = 41;  // Trigger pin for front sensor
+const int trigFront = 41;
 const int echoFront = 40;  
 const int trigLeft = 39;   
 const int echoLeft = 38;
@@ -72,8 +72,14 @@ void setup() {
 
 void loop() {
 
+  /*
+  Due to the accuracy and error issues of color recognition, 
+  we have ultimately decided to abandon color recognition
+  and instead use an ultrasonic sensor to obtain the distances
+  of the front, left, and right sides of the car in order to determine whether the treasure has been detected.
+  */
+
   // Call color detection
-  //Due to the accuracy and error issues of color recognition, we have ultimately decided to abandon color recognition and instead use an ultrasonic sensor to obtain the distances of the front, left, and right sides of the car in order to determine whether the treasure has been detected.
   //TCS();
 
   // Get distance values
@@ -82,10 +88,17 @@ void loop() {
   int Right = distanceRight();
 
   // Create JSON doc
-  unsigned long currentTime = millis();  
+  unsigned long currentTime = millis();
+
+  // Add timestamp
   doc["timeElapsed"] = currentTime;
-  doc["Colour Detected"] = colour;
+
+  // Add status code to determine whether we have detected the treasure.
   doc["statusCode"] = statusCode;
+
+  // Add echo sensor datas
+  doc["Colour Detected"] = colour;
+  
   doc["Distance front"] = Front;
   doc["Distance left"] = Left;  
   doc["Distance right"] = Right;
@@ -338,12 +351,34 @@ ISR(TIMER2_OVF_vect) {
 
 // Color determination function
 void determineColor(int red, int green, int blue) {
-
-  // Color centroids
+  // Centroid coordinates for each color in RGB space
   float whiteCenter[] = {105.32727273, 126.58181818, 123.63636364};
   float redCenter[] = {131.75, 61.5, 76.07142857};
   float blueCenter[] = {115.8, 101.02857143, 168.37142857};
-  float greenCenter[] = {76.07142857, 131.75, 61.5};
+  float greenCenter[] = {76.07142857, 131.75, 61.5}; // Replace with your actual green centroid
 
+  // Compute Euclidean distance from each centroid
   float distanceToWhite = sqrt(pow(red - whiteCenter[0], 2) + pow(green - whiteCenter[1], 2) + pow(blue - whiteCenter[2], 2));
-  float distance
+  float distanceToRed = sqrt(pow(red - redCenter[0], 2) + pow(green - redCenter[1], 2) + pow(blue - redCenter[2], 2));
+  float distanceToBlue = sqrt(pow(red - blueCenter[0], 2) + pow(green - blueCenter[1], 2) + pow(blue - blueCenter[2], 2));
+  float distanceToGreen = sqrt(pow(red - greenCenter[0], 2) + pow(green - greenCenter[1], 2) + pow(blue - greenCenter[2], 2));
+
+  // Determine the color by identifying the minimum distance
+  if (distanceToWhite < distanceToRed && distanceToWhite < distanceToBlue && distanceToWhite < distanceToGreen) {
+    colour = "White";
+    Serial.println("White");
+  } else if (distanceToRed < distanceToWhite && distanceToRed < distanceToBlue && distanceToRed < distanceToGreen) {
+    colour = "Red";
+    Serial.println("Red");
+  } else if (distanceToBlue < distanceToWhite && distanceToBlue < distanceToRed && distanceToBlue < distanceToGreen) {
+    colour = "Blue";
+    Serial.println("Blue");
+  } else if (distanceToGreen < distanceToWhite && distanceToGreen < distanceToRed && distanceToGreen < distanceToBlue) {
+    colour = "Green";
+    Serial.println("Green");
+  } else {
+    // If no color matches, the color is unknown
+    colour = "Unknown";
+    Serial.println("Unknown");
+  }
+}
