@@ -1,50 +1,48 @@
 import tkinter as tk
 import os
-import subprocess
 from PIL import Image, ImageTk
 
 
 class ImageGUI(tk.Tk):
-    def __init__(nihao, sourceLeft, sourceRight):
-        tk.Tk.__init__(nihao)
-        nihao.title("Display")
-        # 创建标签
-        nihao.lLable = tk.Label(nihao, text="Examples")
-        nihao.lLable.grid(row=0, column=0)
+    def __init__(self, sourceLeft, sourceRight):
+        tk.Tk.__init__(self)
+        self.title("Display")
 
-        nihao.RLable = tk.Label(nihao, text="Answer")
-        nihao.RLable.grid(row=0, column=1)
+        # Create labels
+        self.lLable = tk.Label(self, text="Examples")
+        self.lLable.grid(row=0, column=0)
 
-        # 创建画布
-        nihao.LCan = tk.Canvas(nihao, width=400, height=400)
-        nihao.LCan.grid(row=1, column=0, padx=10, pady=10)
+        self.RLable = tk.Label(self, text="Answer")
+        self.RLable.grid(row=0, column=1)
 
-        nihao.RCan = tk.Canvas(nihao, width=400, height=400)
-        nihao.RCan.grid(row=1, column=1, padx=10, pady=10)
-        
-        # 放入图片
-        nihao.LImage = nihao.load_images_from_folder(sourceLeft)
-        nihao.LIT = [ImageTk.PhotoImage(image) for image in nihao.LImage]
+        # Create canvases
+        self.LCan = tk.Canvas(self, width=400, height=400)
+        self.LCan.grid(row=1, column=0, padx=10, pady=10)
 
-        nihao.RImage = nihao.load_images_from_folder(sourceRight)
-        nihao.RIT = [ImageTk.PhotoImage(image) for image in nihao.RImage]
+        self.RCan = tk.Canvas(self, width=400, height=400)
+        self.RCan.grid(row=1, column=1, padx=10, pady=10)
 
-        nihao.LIdex = 0  # 左边第几个
-        nihao.RIdex = 0  # 右边第几个
+        # Load images
+        self.LImage = self.load_images_from_folder(sourceLeft)
+        self.LIT = [ImageTk.PhotoImage(image) for image in self.LImage]
 
-        nihao.emergeLeft()
-        nihao.emergeRight()
+        self.RImage = self.load_images_from_folder(sourceRight)
+        self.RIT = [ImageTk.PhotoImage(image) for image in self.RImage]
 
-        # 按钮
-        nihao.lftButton = tk.Button(nihao, text="previous", command=nihao.displayPreImg)
-        nihao.lftButton.grid(row=2, column=0, pady=10)
+        self.LIdex = 0  # Index for left side
+        self.RIdex = 0  # Index for right side
 
-        nihao.rgtButton = tk.Button(nihao, text="next", command=nihao.displayNxtImg)
-        nihao.rgtButton.grid(row=2, column=1, pady=10)
+        self.emergeLeft()
+        self.emergeRight()
 
+        # Buttons
+        self.lftButton = tk.Button(self, text="previous", command=self.displayPreImg)
+        self.lftButton.grid(row=2, column=0, pady=10)
 
+        self.rgtButton = tk.Button(self, text="next", command=self.displayNxtImg)
+        self.rgtButton.grid(row=2, column=1, pady=10)
 
-    def load_images_from_folder(nihao, folder):
+    def load_images_from_folder(self, folder):
         images = []
         for filename in os.listdir(folder):
             if filename.endswith(".jpg") or filename.endswith(".png"):
@@ -54,35 +52,31 @@ class ImageGUI(tk.Tk):
                 images.append(imgSize)
         return images
 
-    def displayPreImg(nihao):
-        # 展示上张图片
-        nihao.LIdex = (nihao.LIdex - 1) % len(nihao.LImage)
-        nihao.emergeLeft()
-        nihao.RIdex = (nihao.RIdex - 1) % len(nihao.RImage)
-        nihao.emergeRight()
+    def displayPreImg(self):
+        # Display previous image
+        self.LIdex = (self.LIdex - 1) % len(self.LImage)
+        self.emergeLeft()
+        self.RIdex = (self.RIdex - 1) % len(self.RImage)
+        self.emergeRight()
 
-    def displayNxtImg(nihao):
-        # 展示下张图片
-        nihao.LIdex = (nihao.LIdex + 1) % len(nihao.LImage)
-        nihao.emergeLeft()
-        nihao.RIdex = (nihao.RIdex + 1) % len(nihao.RImage)
-        nihao.emergeRight()
+    def displayNxtImg(self):
+        # Display next image
+        self.LIdex = (self.LIdex + 1) % len(self.LImage)
+        self.emergeLeft()
+        self.RIdex = (self.RIdex + 1) % len(self.RImage)
+        self.emergeRight()
 
-    def emergeLeft(nihao):
-        nihao.LCan.delete("all")
-        nihao.LCan.create_image(0, 0, anchor=tk.NW, image=nihao.LIT[nihao.LIdex])
+    def emergeLeft(self):
+        self.LCan.delete("all")
+        self.LCan.create_image(0, 0, anchor=tk.NW, image=self.LIT[self.LIdex])
 
-    def emergeRight(nihao):
-        nihao.RCan.delete("all")
-        nihao.RCan.create_image(0, 0, anchor=tk.NW, image=nihao.RIT[nihao.RIdex])
+    def emergeRight(self):
+        self.RCan.delete("all")
+        self.RCan.create_image(0, 0, anchor=tk.NW, image=self.RIT[self.RIdex])
 
-
-
-
-# Your existing code
 
 def run_gui():
-    sourceLeft = "C:\\Users\\tbx12\\Desktop\\Code\\target"  # example路径
-    sourceRight = "C:\\Users\\tbx12\\Desktop\\Code\\predict"  # answer路径
+    sourceLeft = "C:\\Users\\tbx12\\Desktop\\Code\\target"  # path for examples
+    sourceRight = "C:\\Users\\tbx12\\Desktop\\Code\\predict"  # path for answers
     app = ImageGUI(sourceLeft, sourceRight)
     app.mainloop()

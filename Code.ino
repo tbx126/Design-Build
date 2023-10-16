@@ -1,161 +1,174 @@
-#include <SoftwareSerial.h>
+// Arduino code for robot car with Bluetooth and sensors
+
+#include <SoftwareSerial.h> 
 #include <ArduinoJson.h>
 
-//定义五种运动状态
+// Define motion states 
 #define STOP      0
 #define FORWARD   1
-#define BACK      2
+#define BACK      2  
 #define LEFT      3
 #define RIGHT     4
 
-const int leftMotor1 = 4;
+// Motor pins
+const int leftMotor1 = 4;  
 const int leftMotor2 = 5;
 const int rightMotor1 = 6;
 const int rightMotor2 = 7;
 
-// 定义超声波传感器的引脚
-const int trigFront = 41; // 前方超声波传感器的触发引脚
-const int echoFront = 40; // 前方超声波传感器的回波引脚
-const int trigLeft = 39; // 左侧超声波传感器的触发引脚
-const int echoLeft = 38; // 左侧超声波传感器的回波引脚
-const int trigRight = 43; // 右侧超声波传感器的触发引脚
-const int echoRight = 42; // 右侧超声波传感器的回波引脚
+// Ultrasonic sensor pins
+const int trigFront = 41;  // Trigger pin for front sensor
+const int echoFront = 40;  
+const int trigLeft = 39;   
+const int echoLeft = 38;
+const int trigRight = 43;  
+const int echoRight = 42;
 
-// 定义色彩传感器的引脚
+// Color sensor pins
 const int S0 = 46;
-const int S1 = 44;
+const int S1 = 44; 
 const int S2 = 45;
 const int S3 = 47;
 
-int statusCode = 200;
+// Other variables
+int statusCode = 200; 
+bool alreadyStopped = false;
 
-bool alreadyStopped = false; 
+StaticJsonDocument<200> doc; 
 
-StaticJsonDocument<200> doc;
-
+// Color sensor variables
 int out=2;
 int flag=0;
 byte counter=0;
-byte Red=0,Green=0,Blue=0;
+byte Red=0,Green=0,Blue=0;  
+String colour;
+int red = 0;   
+int green = 0;
+int blue = 0;
 
-// 初始化颜色值
-String colour; // 用于存储颜色代码的变量
-int red = 0; // 红色强度值
-int green = 0; // 绿色强度值
-int blue = 0; // 蓝色强度值
-
-SoftwareSerial BT(19, 18); // 19为TX引脚，18为RX引脚
-char val; 
+// Bluetooth serial 
+SoftwareSerial BT(19, 18); 
 
 void setup() {
-  // 设置串口通信的波特率为9600
+
   Serial.begin(9600);
+  
+  // Set color sensor pins as output
   pinMode(S0,OUTPUT);
   pinMode(S1,OUTPUT);
   pinMode(S2,OUTPUT);
   pinMode(S3,OUTPUT);
 
-  BT.begin(9600);  //设置HC-06兼容模块波特率
+  // Start Bluetooth serial
+  BT.begin(9600);  
   
+  // Set motor pins as output
   pinMode(leftMotor1, OUTPUT);
   pinMode(leftMotor2, OUTPUT);
   pinMode(rightMotor1, OUTPUT);
   pinMode(rightMotor2, OUTPUT);
+  
 }
 
 void loop() {
-    String output;
-    // 在主循环中，首先调用颜色LED检测函数
-    //TCS();
 
-    // 然后调用超声波传感器测距函数，测量前、左、右三个方向的距离
-    int Front = distanceFront();
-    int Left = distanceLeft();
-    int Right = distanceRight();
+  // Call color detection
+  //Due to the accuracy and error issues of color recognition, we have ultimately decided to abandon color recognition and instead use an ultrasonic sensor to obtain the distances of the front, left, and right sides of the car in order to determine whether the treasure has been detected.
+  //TCS();
 
-    //StaticJsonDocument<200> doc;
-    unsigned long currentTime = millis();  // 获取当前时间
+  // Get distance values
+  int Front = distanceFront();
+  int Left = distanceLeft();
+  int Right = distanceRight();
 
-    // 把获取的数据存入JSON文档
-    doc["timeElapsed"] = currentTime;
-    doc["Colour Detected"] = colour;
-    doc["statusCode"] = statusCode;
-    doc["Distance front"] = Front;
-    doc["Distance left"] = Left;
-    doc["Distance right"] = Right;
+  // Create JSON doc
+  unsigned long currentTime = millis();  
+  doc["timeElapsed"] = currentTime;
+  doc["Colour Detected"] = colour;
+  doc["statusCode"] = statusCode;
+  doc["Distance front"] = Front;
+  doc["Distance left"] = Left;  
+  doc["Distance right"] = Right;
 
-    // 把颜色分量存入JSON文档
-    doc["Red"] = Red;
-    doc["Green"] = Green;
-    doc["Blue"] = Blue;
+  // Add color values
+  doc["Red"] = Red;
+  doc["Green"] = Green;
+  doc["Blue"] = Blue;
 
-    // 检测是否有串行数据可用
-    if (Serial.available()) {
-        val = Serial.read();  // 读取串行数据
-        BT.println(val);  // 发送串行数据
+  // Check for incoming Bluetooth data
+  if (Serial.available()) {
+    char val = Serial.read();
+    BT.println(val);  
+  }
+
+  // Check front distance
+  if(Front <= 22) {
+    
+    // If close on all sides, stop
+    if(Left <= 16 && Right <= 16 && !alreadyStopped) {
+      
+      statusCode = 1;  
+      doc["statusCode"] = statusCode;
+      
+      String output;
+      serializeJson(doc, output);
+      BT.println(output);
+
+      if (Serial.available()) {
+        char val = Serial.read();
+        BT.println(val);  
+      }
+
+      // Stop sequence
+      motorRun(2, 30); delay(300);
+      motorRun(0, 0);  delay(16000);
+      motorRun(4, 50); delay(300);
+      motorRun(2, 40); delay(300);
+      motorRun(4, 50); delay(500);
+
+      statusCode = 200;
+      alreadyStopped = true;
+
     }
-
-
-    // 检测前方距离
-    if(Front <= 22) {
-        if(Left <= 16 && Right <= 16 && !alreadyStopped) {
-            statusCode = 1;  // 更新状态码
-
-            // 创建新的JSON文档并存入状态码
-            //StaticJsonDocument<200> doc;    
-            doc["statusCode"] = statusCode;
-
-            // 序列化并发送JSON文档
-            serializeJson(doc, output);
-            BT.println(output);
-
-            if (Serial.available()) {
-                val = Serial.read();  // 读取串行数据
-                BT.println(val);  // 发送串行数据
-            }
-            //Serial.println(output);
-
-            motorRun(2, 30); delay(300);
-            motorRun(0, 0);  delay(16000);
-            motorRun(4, 50); delay(300);
-            motorRun(2, 40); delay(300);
-            motorRun(4, 50); delay(500);
-
-            statusCode = 200;
-            alreadyStopped = true;
-        }
-        else if(!alreadyStopped){
-            // 根据左右距离控制运动
-            if(Left >= Right + 2) {
-                motorRun(3,50); // Turn left
-                delay(120);
-            }
-            else {
-                motorRun(4,50); // Turn right
-                delay(120);
-            }
-        }
+    
+    // If not already stopped, turn left/right
+    else if(!alreadyStopped){
+      
+      if(Left >= Right + 2) {
+        motorRun(3,50); 
+        delay(120);
+      }
+      else {
+        motorRun(4,50);
+        delay(120);
+      }
+      
     }
-    else {
-        if(alreadyStopped) {
-            alreadyStopped = false;
-        }
-        motorRun(1, 30);
+    
+  }
+  
+  // If stopped previously, reset flag
+  else {
+    if(alreadyStopped) {
+      alreadyStopped = false; 
     }
+    motorRun(1, 30); 
+  }
 
-    // 将JSON文档序列化为字符串
-    serializeJson(doc, output);
-    // 发送JSON字符串
-    BT.println(output);
+  // Send JSON output
+  String output;
+  serializeJson(doc, output);
+  BT.println(output);
 
-    delay(10);
+  delay(10);
+
 }
 
-// 前方超声波传感器测距函数
+// Front distance function
 int distanceFront() {
+  
   long durationFront, distanceFront;
 
-  // 设置超声波传感器为发送模式，发送超声波
   pinMode(trigFront, OUTPUT);
   digitalWrite(trigFront, LOW);
   delayMicroseconds(2);
@@ -163,25 +176,19 @@ int distanceFront() {
   delayMicroseconds(10);
   digitalWrite(trigFront, LOW);
 
-  // 设置超声波传感器为接收模式，接收回波
   pinMode(echoFront, INPUT);
   durationFront = pulseIn(echoFront, HIGH);
 
-  // 计算并返回距离
   distanceFront = durationFront / 58;
-  /*
-  Serial.print("Distance front: ");
-  Serial.print(distanceFront);
-  Serial.print("cm");
-  Serial.println();*/
+
   return distanceFront;
 }
 
-// 左侧超声波传感器测距函数
+// Left distance function 
 int distanceLeft() {
+  
   long durationLeft, distanceLeft;
 
-  // 设置超声波传感器为发送模式，发送超声波
   pinMode(trigLeft, OUTPUT);
   digitalWrite(trigLeft, LOW);
   delayMicroseconds(2);
@@ -189,25 +196,19 @@ int distanceLeft() {
   delayMicroseconds(10);
   digitalWrite(trigLeft, LOW);
 
-  // 设置超声波传感器为接收模式，接收回波
   pinMode(echoLeft, INPUT);
   durationLeft = pulseIn(echoLeft, HIGH);
 
-  // 计算并返回距离
   distanceLeft = durationLeft / 58;
-  /*
-  Serial.print("Distance Left: ");
-  Serial.print(distanceLeft);
-  Serial.print("cm");
-  Serial.println();*/
+
   return distanceLeft;
 }
 
-// 右侧超声波传感器测距函数
+// Right distance function
 int distanceRight() {
+
   long durationRight, distanceRight;
 
-  // 设置超声波传感器为发送模式，发送超声波
   pinMode(trigRight, OUTPUT);
   digitalWrite(trigRight, LOW);
   delayMicroseconds(2);
@@ -215,134 +216,134 @@ int distanceRight() {
   delayMicroseconds(10);
   digitalWrite(trigRight, LOW);
 
-  // 设置超声波传感器为接收模式，接收回波
   pinMode(echoRight, INPUT);
   durationRight = pulseIn(echoRight, HIGH);
 
-  // 计算并返回距离
   distanceRight = durationRight / 58;
-  /*
-  Serial.print("Distance Right: ");
-  Serial.print(distanceRight);
-  Serial.print("cm");
-  Serial.println();*/
+
   return distanceRight;
 }
 
+// Motor control function 
 void motorRun(int direction, int speed) {
-  int pwmValue = map(speed, 0, 100, 0, 255); // 将速度映射为合适的PWM值
+  
+  int pwmValue = map(speed, 0, 100, 0, 255);
 
   switch (direction) {
+    
     case RIGHT:
       digitalWrite(leftMotor1, LOW);
       analogWrite(leftMotor2, pwmValue);
       digitalWrite(rightMotor1, LOW);
       analogWrite(rightMotor2, pwmValue);
       break;
+
     case LEFT:
       analogWrite(leftMotor1, pwmValue);
       digitalWrite(leftMotor2, LOW);
       analogWrite(rightMotor1, pwmValue);
       digitalWrite(rightMotor2, LOW);
       break;
+
     case FORWARD:
       analogWrite(leftMotor1, pwmValue);
       digitalWrite(leftMotor2, LOW);
       digitalWrite(rightMotor1, LOW);
       analogWrite(rightMotor2, pwmValue);
       break;
+
     case BACK:
       digitalWrite(leftMotor1, LOW);
       analogWrite(leftMotor2, pwmValue);
       analogWrite(rightMotor1, pwmValue);
-      digitalWrite(rightMotor2, LOW);
-      
+      digitalWrite(rightMotor2, LOW);            
       break;
+
     default:
       digitalWrite(leftMotor1, LOW);
       analogWrite(leftMotor2, 0);
       digitalWrite(rightMotor1, LOW);
       analogWrite(rightMotor2, 0);
   }
+
 }
 
+// Color detection function
 void TCS() {
+
   flag = 0;
   digitalWrite(S1,HIGH);
   digitalWrite(S0,HIGH);
   digitalWrite(S2,LOW);
   digitalWrite(S3,LOW);
+  
   attachInterrupt(0, ISR_INTO, LOW);
   timer0_init();
+  
   determineColor(Red, Green, Blue);
+
 }
 
+// Interrupt service routine
 void ISR_INTO() {
-  counter++;
+  counter++; 
 }
 
+// Timer initialization
 void timer0_init(void) {
+  
   TCCR2A = 0x00;
-  TCCR2B = 0x07;   // the clock frequency source 1024 points
-  TCNT2 = 100;     // 10 ms overflow again
-  TIMSK2 = 0x01;   // allow interrupt
+  TCCR2B = 0x07;   
+  TCNT2 = 100;     
+  TIMSK2 = 0x01;   
+
 }
 
+// Timer interrupt service routine  
+ISR(TIMER2_OVF_vect) {
 
-ISR(TIMER2_OVF_vect) { // the timer 2, 10ms interrupt overflow again. Internal overflow interrupt executive function
   TCNT2 = 100;
   flag++;
   
   if(flag==1) {
+
     Red=counter;
-    //Serial.print("red=");
-    //Serial.println(Red);
+
     digitalWrite(S2,HIGH);
     digitalWrite(S3,HIGH);
+
   } else if(flag==2){
+
     Green=counter;
-    //Serial.print("green=");
-    //Serial.println(Green);
+
     digitalWrite(S2,LOW);
     digitalWrite(S3,HIGH);
+
   } else if(flag==3){
+
     Blue=counter;
-    //Serial.print("blue=");
-    //Serial.println(Blue);
+
     digitalWrite(S2,LOW);
     digitalWrite(S3,LOW);
+
   } else if(flag==4){
+
     flag=0;
+
   }
+
   counter=0;
+
 }
 
+// Color determination function
 void determineColor(int red, int green, int blue) {
 
+  // Color centroids
   float whiteCenter[] = {105.32727273, 126.58181818, 123.63636364};
   float redCenter[] = {131.75, 61.5, 76.07142857};
   float blueCenter[] = {115.8, 101.02857143, 168.37142857};
-  float greenCenter[] = {76.07142857, 131.75, 61.5}; // Replace with your actual green centroid
+  float greenCenter[] = {76.07142857, 131.75, 61.5};
 
   float distanceToWhite = sqrt(pow(red - whiteCenter[0], 2) + pow(green - whiteCenter[1], 2) + pow(blue - whiteCenter[2], 2));
-  float distanceToRed = sqrt(pow(red - redCenter[0], 2) + pow(green - redCenter[1], 2) + pow(blue - redCenter[2], 2));
-  float distanceToBlue = sqrt(pow(red - blueCenter[0], 2) + pow(green - blueCenter[1], 2) + pow(blue - blueCenter[2], 2));
-  float distanceToGreen = sqrt(pow(red - greenCenter[0], 2) + pow(green - greenCenter[1], 2) + pow(blue - greenCenter[2], 2)); // Green distance
-
-  if (distanceToWhite < distanceToRed && distanceToWhite < distanceToBlue && distanceToWhite < distanceToGreen) {
-    colour = "White";
-    Serial.println("White");
-  } else if (distanceToRed < distanceToWhite && distanceToRed < distanceToBlue && distanceToRed < distanceToGreen) {
-    colour = "Red";
-    Serial.println("Red");
-  } else if (distanceToBlue < distanceToWhite && distanceToBlue < distanceToRed && distanceToBlue < distanceToGreen) {
-    colour = "Blue";
-    Serial.println("Blue");
-  } else if (distanceToGreen < distanceToWhite && distanceToGreen < distanceToRed && distanceToGreen < distanceToBlue) { // Green condition
-    colour = "Green";
-    Serial.println("Green");
-  } else {
-    colour = "Unknown";
-    Serial.println("Unknown");
-  }
-}
+  float distance
